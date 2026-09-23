@@ -103,6 +103,15 @@ function buildUserContent(data: AnalyzeRequestBody) {
   ]
 }
 
+function providerRouting(): { only: string[]; allow_fallbacks: boolean } | undefined {
+  const only = process.env.OPENROUTER_PROVIDER
+  if (!only) return undefined
+  return {
+    only: only.split(',').map((p) => p.trim()).filter(Boolean),
+    allow_fallbacks: false,
+  }
+}
+
 async function callOpenRouter(systemPrompt: string, data: AnalyzeRequestBody, apiKey: string, model: string) {
   return fetch('https://openrouter.ai/api/v1/chat/completions', {
     method: 'POST',
@@ -119,6 +128,7 @@ async function callOpenRouter(systemPrompt: string, data: AnalyzeRequestBody, ap
         { role: 'user', content: buildUserContent(data) },
       ],
       response_format: { type: 'json_object' },
+      provider: providerRouting(),
     }),
   })
 }
@@ -211,6 +221,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             { role: 'user', content: `Fix this into valid JSON only, keeping the same structure and values:\n\n${rawContent}` },
           ],
           response_format: { type: 'json_object' },
+          provider: providerRouting(),
         }),
       })
       const retryPayload = (await retryResponse.json()) as OpenRouterChatResponse
